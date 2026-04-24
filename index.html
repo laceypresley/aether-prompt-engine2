@@ -1,0 +1,696 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AETHER • Visual Prompt Engine</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&amp;family=Space+Grotesk:wght@500;600&amp;display=swap');
+        
+        body { font-family: 'Inter', system_ui, sans-serif; }
+        .font-display { font-family: 'Space Grotesk', 'Inter', system_ui, sans-serif; font-weight: 600; }
+
+        .glass { background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(20px); }
+        .prompt-textarea { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }
+        .modern-input { transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); }
+        .modern-input:focus { outline: none; box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.2); border-color: #10b981; }
+        .category-card { transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.2s cubic-bezier(0.4, 0, 0.2, 1); }
+        .category-card:hover { transform: translateY(-2px); box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1); }
+        .thumbnail { transition: all 0.2s ease; }
+        .thumbnail:hover { transform: scale(1.03); box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.3); }
+        .toast { animation: toast-pop 0.3s ease forwards; }
+        @keyframes toast-pop { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        .analysis-label { font-size: 0.75rem; font-weight: 600; letter-spacing: 0.5px; color: #64748b; }
+    </style>
+</head>
+<body class="bg-zinc-950 text-zinc-200">
+    <!-- NAV -->
+    <nav class="border-b border-zinc-800 bg-zinc-950 sticky top-0 z-50">
+        <div class="max-w-screen-2xl mx-auto px-8 py-5 flex items-center justify-between">
+            <div class="flex items-center gap-x-3">
+                <div class="w-10 h-10 bg-emerald-500 rounded-2xl flex items-center justify-center">
+                    <i class="fa-solid fa-infinity text-zinc-950 text-2xl"></i>
+                </div>
+                <div>
+                    <span class="font-display text-3xl font-semibold tracking-tighter">AETHER</span>
+                    <span class="text-emerald-400 text-xs font-mono ml-1">v3.1</span>
+                </div>
+            </div>
+            <div class="flex items-center gap-x-3">
+                <div class="px-3 py-1 bg-zinc-900 rounded-2xl flex items-center gap-x-2 text-xs border border-zinc-800">
+                    <div class="w-2 h-2 bg-emerald-400 rounded-full animate-pulse"></div>
+                    <span class="font-mono text-emerald-400">OFFLINE READY</span>
+                </div>
+                <button onclick="showHelp()" class="px-4 py-2 text-sm flex items-center gap-x-2 hover:bg-zinc-900 transition-colors rounded-2xl border border-zinc-800">
+                    <i class="fa-solid fa-question-circle"></i>
+                    <span>How it works</span>
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <div class="max-w-screen-2xl mx-auto px-6 pb-12">
+        
+        <!-- HERO -->
+        <div class="pt-10 pb-8 max-w-3xl">
+            <div class="inline-flex items-center gap-x-2 px-4 py-1.5 bg-zinc-900 border border-zinc-800 rounded-3xl mb-4">
+                <span class="text-emerald-400 text-xs font-mono tracking-widest">HIGH-FIDELITY PROMPT ENGINE</span>
+            </div>
+            
+            <h1 class="font-display text-6xl tracking-tighter font-semibold leading-none">
+                Visual DNA<br>prompt engine
+            </h1>
+            <p class="mt-4 text-xl text-zinc-400 max-w-md">
+                Upload reference images. Extract their cinematic soul. 
+                Generate production-ready prompts for Flux, Midjourney, Runway &amp; more.
+            </p>
+            
+            <div class="flex items-center gap-x-3 mt-6">
+                <button onclick="document.getElementById('file-input').click()" 
+                        class="px-8 py-3.5 bg-emerald-500 hover:bg-emerald-600 transition-all text-zinc-950 font-semibold rounded-3xl flex items-center gap-x-3 text-sm">
+                    <i class="fa-solid fa-upload"></i>
+                    <span>UPLOAD REFERENCES</span>
+                </button>
+                <button onclick="loadDemoAnalysis()" 
+                        class="px-6 py-3.5 bg-zinc-900 hover:bg-zinc-800 border border-zinc-700 text-sm rounded-3xl flex items-center gap-x-2">
+                    <i class="fa-solid fa-magic"></i>
+                    <span>Load Demo</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- UPLOAD ZONE -->
+        <div class="mb-8">
+            <div id="upload-zone" class="border-2 border-dashed border-zinc-700 hover:border-emerald-500 transition-colors rounded-3xl p-9 text-center cursor-pointer bg-zinc-900/50"
+                 ondrop="handleDrop(event)" ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)"
+                 onclick="document.getElementById('file-input').click()">
+                
+                <div class="mx-auto w-16 h-16 bg-zinc-800 rounded-2xl flex items-center justify-center mb-4">
+                    <i class="fa-solid fa-images text-3xl text-emerald-400"></i>
+                </div>
+                <h3 class="font-semibold text-xl">Drop your reference images here</h3>
+                <p class="text-zinc-400 text-sm mt-1.5">JPG, PNG, WEBP • Max 8 images</p>
+                
+                <div class="mt-5">
+                    <button onclick="event.stopImmediatePropagation(); document.getElementById('file-input').click()" 
+                            class="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-sm font-semibold rounded-2xl">
+                        Choose Files
+                    </button>
+                </div>
+            </div>
+            
+            <input type="file" id="file-input" multiple accept="image/*" class="hidden" onchange="handleFileSelect(event)">
+            
+            <!-- Gallery -->
+            <div id="gallery" class="mt-5 hidden">
+                <div class="flex items-center justify-between mb-3">
+                    <span class="font-semibold text-sm">REFERENCE GALLERY <span id="image-count" class="text-emerald-400">(0/8)</span></span>
+                    <button onclick="clearAllImages()" class="text-xs text-red-400 hover:text-red-300 flex items-center gap-x-1">
+                        <i class="fa-solid fa-trash"></i> Clear All
+                    </button>
+                </div>
+                <div id="thumbnail-grid" class="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-3"></div>
+            </div>
+        </div>
+
+        <!-- ANALYSIS CATEGORIES -->
+        <div class="mb-4 flex items-end justify-between">
+            <div>
+                <span class="font-display text-3xl tracking-tight">Visual DNA Analysis</span>
+                <p class="text-sm text-zinc-400">Break down your references into precise cinematic components</p>
+            </div>
+            <button onclick="resetAnalysis()" class="text-xs px-4 py-2 border border-zinc-700 hover:bg-zinc-900 rounded-2xl flex items-center gap-x-2">
+                <i class="fa-solid fa-undo"></i> Reset
+            </button>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-5">
+            
+            <!-- Subject -->
+            <div class="category-card bg-zinc-900 border border-zinc-800 rounded-3xl p-6">
+                <div class="flex items-center gap-x-3 mb-5">
+                    <div class="w-9 h-9 rounded-2xl bg-emerald-500/10 flex items-center justify-center">
+                        <i class="fa-solid fa-user-astronaut text-emerald-400"></i>
+                    </div>
+                    <div class="font-semibold">1. Subject</div>
+                </div>
+                <div class="space-y-4">
+                    <div>
+                        <label class="analysis-label">MAIN CHARACTER / OBJECT</label>
+                        <input id="subject-main" type="text" value="sleek silver maglev train" class="modern-input w-full bg-zinc-800 border border-zinc-700 text-sm rounded-2xl px-4 py-2.5 mt-1">
+                    </div>
+                    <div>
+                        <label class="analysis-label">POSE / ACTION</label>
+                        <input id="subject-pose" type="text" value="gliding at high speed along elevated verdant tracks" class="modern-input w-full bg-zinc-800 border border-zinc-700 text-sm rounded-2xl px-4 py-2.5 mt-1">
+                    </div>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="analysis-label">SCALE</label>
+                            <select id="subject-scale" class="modern-input w-full bg-zinc-800 border border-zinc-700 text-sm rounded-2xl px-4 py-2.5 mt-1">
+                                <option value="Intimate">Intimate</option>
+                                <option value="Medium">Medium</option>
+                                <option value="Epic" selected>Epic</option>
+                                <option value="Monumental">Monumental</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="analysis-label">PRESENCE</label>
+                            <select id="subject-emotion" class="modern-input w-full bg-zinc-800 border border-zinc-700 text-sm rounded-2xl px-4 py-2.5 mt-1">
+                                <option value="Majestic &amp; Hopeful">Majestic &amp; Hopeful</option>
+                                <option value="Mysterious">Mysterious</option>
+                                <option value="Dynamic &amp; Alive">Dynamic &amp; Alive</option>
+                                <option value="Awe-Inspiring">Awe-Inspiring</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Environment -->
+            <div class="category-card bg-zinc-900 border border-zinc-800 rounded-3xl p-6">
+                <div class="flex items-center gap-x-3 mb-5">
+                    <div class="w-9 h-9 rounded-2xl bg-emerald-500/10 flex items-center justify-center">
+                        <i class="fa-solid fa-globe text-emerald-400"></i>
+                    </div>
+                    <div class="font-semibold">2. Environment</div>
+                </div>
+                <div class="space-y-4">
+                    <div>
+                        <label class="analysis-label">PRIMARY LOCATION</label>
+                        <input id="env-location" type="text" value="towering multi-level biophilic megacity" class="modern-input w-full bg-zinc-800 border border-zinc-700 text-sm rounded-2xl px-4 py-2.5 mt-1">
+                    </div>
+                    <div>
+                        <label class="analysis-label">KEY BACKGROUND ELEMENTS</label>
+                        <textarea id="env-background" rows="2" class="modern-input w-full bg-zinc-800 border border-zinc-700 text-sm rounded-2xl px-4 py-2.5 mt-1">cascading waterfalls, vertical gardens, glowing holographic billboards</textarea>
+                    </div>
+                    <div>
+                        <label class="analysis-label">ATMOSPHERE</label>
+                        <input id="env-atmosphere" type="text" value="misty golden hour with volumetric sunbeams" class="modern-input w-full bg-zinc-800 border border-zinc-700 text-sm rounded-2xl px-4 py-2.5 mt-1">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Style -->
+            <div class="category-card bg-zinc-900 border border-zinc-800 rounded-3xl p-6">
+                <div class="flex items-center gap-x-3 mb-5">
+                    <div class="w-9 h-9 rounded-2xl bg-emerald-500/10 flex items-center justify-center">
+                        <i class="fa-solid fa-palette text-emerald-400"></i>
+                    </div>
+                    <div class="font-semibold">3. Style &amp; Aesthetic</div>
+                </div>
+                <div class="space-y-4">
+                    <div>
+                        <label class="analysis-label">VISUAL GENRE</label>
+                        <select id="style-genre" class="modern-input w-full bg-zinc-800 border border-zinc-700 text-sm rounded-2xl px-4 py-2.5 mt-1">
+                            <option value="Biophilic Futurism" selected>Biophilic Futurism</option>
+                            <option value="Cyberpunk">Cyberpunk</option>
+                            <option value="Cinematic Realism">Cinematic Realism</option>
+                            <option value="Sci-Fi Epic">Sci-Fi Epic</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="analysis-label">ART DIRECTION</label>
+                        <input id="style-artdir" type="text" value="hyperrealistic concept art • Studio Ghibli + Blade Runner 2049" class="modern-input w-full bg-zinc-800 border border-zinc-700 text-sm rounded-2xl px-4 py-2.5 mt-1">
+                    </div>
+                    <div>
+                        <label class="analysis-label">MOOD KEYWORDS</label>
+                        <input id="style-mood" type="text" value="awe-inspiring, serene optimism, epic tranquility" class="modern-input w-full bg-zinc-800 border border-zinc-700 text-sm rounded-2xl px-4 py-2.5 mt-1">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Lighting -->
+            <div class="category-card bg-zinc-900 border border-zinc-800 rounded-3xl p-6">
+                <div class="flex items-center gap-x-3 mb-5">
+                    <div class="w-9 h-9 rounded-2xl bg-emerald-500/10 flex items-center justify-center">
+                        <i class="fa-solid fa-sun text-emerald-400"></i>
+                    </div>
+                    <div class="font-semibold">4. Lighting</div>
+                </div>
+                <div class="space-y-4">
+                    <div>
+                        <label class="analysis-label">KEY LIGHT</label>
+                        <input id="lighting-key" type="text" value="dramatic volumetric golden sunlight from upper left" class="modern-input w-full bg-zinc-800 border border-zinc-700 text-sm rounded-2xl px-4 py-2.5 mt-1">
+                    </div>
+                    <div>
+                        <label class="analysis-label">RIM LIGHT</label>
+                        <input id="lighting-rim" type="text" value="cool cyan rim lighting tracing edges" class="modern-input w-full bg-zinc-800 border border-zinc-700 text-sm rounded-2xl px-4 py-2.5 mt-1">
+                    </div>
+                    <div>
+                        <label class="analysis-label">VOLUMETRIC EFFECTS</label>
+                        <input id="lighting-volumetric" type="text" value="powerful god rays piercing canopy" class="modern-input w-full bg-zinc-800 border border-zinc-700 text-sm rounded-2xl px-4 py-2.5 mt-1">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Color -->
+            <div class="category-card bg-zinc-900 border border-zinc-800 rounded-3xl p-6">
+                <div class="flex items-center gap-x-3 mb-5">
+                    <div class="w-9 h-9 rounded-2xl bg-emerald-500/10 flex items-center justify-center">
+                        <i class="fa-solid fa-palette text-emerald-400"></i>
+                    </div>
+                    <div class="font-semibold">5. Color Palette</div>
+                </div>
+                <div class="space-y-4">
+                    <div>
+                        <label class="analysis-label">DOMINANT COLORS</label>
+                        <input id="color-dominant" type="text" value="deep emerald green, rich forest green, warm golden amber" class="modern-input w-full bg-zinc-800 border border-zinc-700 text-sm rounded-2xl px-4 py-2.5 mt-1">
+                    </div>
+                    <div>
+                        <label class="analysis-label">ACCENT COLORS</label>
+                        <input id="color-accent" type="text" value="electric cyan, burnt orange, brushed silver" class="modern-input w-full bg-zinc-800 border border-zinc-700 text-sm rounded-2xl px-4 py-2.5 mt-1">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Cinematography -->
+            <div class="category-card bg-zinc-900 border border-zinc-800 rounded-3xl p-6">
+                <div class="flex items-center gap-x-3 mb-5">
+                    <div class="w-9 h-9 rounded-2xl bg-emerald-500/10 flex items-center justify-center">
+                        <i class="fa-solid fa-video text-emerald-400"></i>
+                    </div>
+                    <div class="font-semibold">6. Cinematography</div>
+                </div>
+                <div class="space-y-4">
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="analysis-label">CAMERA ANGLE</label>
+                            <select id="cine-angle" class="modern-input w-full bg-zinc-800 border border-zinc-700 text-sm rounded-2xl px-4 py-2.5 mt-1">
+                                <option value="Low heroic angle">Low heroic angle</option>
+                                <option value="Eye-level tracking">Eye-level tracking</option>
+                                <option value="High establishing">High establishing shot</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="analysis-label">LENS TYPE</label>
+                            <select id="cine-lens" class="modern-input w-full bg-zinc-800 border border-zinc-700 text-sm rounded-2xl px-4 py-2.5 mt-1">
+                                <option value="Anamorphic 35mm">Anamorphic 35mm</option>
+                                <option value="Spherical 28mm wide">Spherical 28mm wide</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="analysis-label">MOTION (VIDEO)</label>
+                        <input id="cine-motion" type="text" value="smooth parallel tracking shot following the train" class="modern-input w-full bg-zinc-800 border border-zinc-700 text-sm rounded-2xl px-4 py-2.5 mt-1">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Detail Amplifiers -->
+            <div class="category-card bg-zinc-900 border border-zinc-800 rounded-3xl p-6">
+                <div class="flex items-center gap-x-3 mb-5">
+                    <div class="w-9 h-9 rounded-2xl bg-emerald-500/10 flex items-center justify-center">
+                        <i class="fa-solid fa-microscope text-emerald-400"></i>
+                    </div>
+                    <div class="font-semibold">7. Detail Amplifiers</div>
+                </div>
+                <div class="space-y-4">
+                    <div>
+                        <label class="analysis-label">MICRO TEXTURES</label>
+                        <textarea id="detail-micro" rows="2" class="modern-input w-full bg-zinc-800 border border-zinc-700 text-sm rounded-2xl px-4 py-2.5 mt-1">individual dew drops on every leaf, micro scratches on titanium</textarea>
+                    </div>
+                    <div>
+                        <label class="analysis-label">ATMOSPHERIC PARTICLES</label>
+                        <input id="detail-particles" type="text" value="floating light motes in sunbeams, gentle rain streaks" class="modern-input w-full bg-zinc-800 border border-zinc-700 text-sm rounded-2xl px-4 py-2.5 mt-1">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Negative Prompt -->
+            <div class="category-card bg-zinc-900 border border-zinc-800 rounded-3xl p-6">
+                <div class="flex items-center gap-x-3 mb-5">
+                    <div class="w-9 h-9 rounded-2xl bg-red-500/10 flex items-center justify-center">
+                        <i class="fa-solid fa-ban text-red-400"></i>
+                    </div>
+                    <div class="font-semibold">8. Negative Prompt</div>
+                </div>
+                <textarea id="negative" rows="4" class="modern-input w-full bg-zinc-800 border border-zinc-700 text-xs rounded-2xl px-4 py-3">lowres, bad anatomy, text, error, missing fingers, blurry, cartoon, 2d, lowpoly, overexposed, underexposed, generic AI look</textarea>
+            </div>
+        </div>
+
+        <!-- Global Sliders -->
+        <div class="mt-8 bg-zinc-900 border border-zinc-800 rounded-3xl p-6">
+            <div class="font-semibold text-sm mb-4">GLOBAL INTENSITY</div>
+            <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+                <div>
+                    <div class="flex justify-between text-xs mb-1"><span class="text-zinc-400">Detail Level</span><span id="detail-level-val" class="font-mono text-emerald-400">9</span></div>
+                    <input type="range" id="detail-level" min="1" max="10" value="9" class="w-full accent-emerald-500" oninput="updateSliderValue(this, 'detail-level-val')">
+                </div>
+                <div>
+                    <div class="flex justify-between text-xs mb-1"><span class="text-zinc-400">Realism</span><span id="realism-level-val" class="font-mono text-emerald-400">9</span></div>
+                    <input type="range" id="realism-level" min="1" max="10" value="9" class="w-full accent-emerald-500" oninput="updateSliderValue(this, 'realism-level-val')">
+                </div>
+                <div>
+                    <div class="flex justify-between text-xs mb-1"><span class="text-zinc-400">Cinematic Drama</span><span id="cinematic-drama-val" class="font-mono text-emerald-400">9</span></div>
+                    <input type="range" id="cinematic-drama" min="1" max="10" value="9" class="w-full accent-emerald-500" oninput="updateSliderValue(this, 'cinematic-drama-val')">
+                </div>
+            </div>
+        </div>
+
+        <!-- Enhance Buttons -->
+        <div class="mt-5 flex flex-wrap gap-2">
+            <button onclick="enhancePrompt('cinematic')" class="px-5 py-2 text-xs flex items-center gap-x-2 bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 rounded-2xl">
+                <i class="fa-solid fa-film"></i> <span>MORE CINEMATIC</span>
+            </button>
+            <button onclick="enhancePrompt('epic')" class="px-5 py-2 text-xs flex items-center gap-x-2 bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 rounded-2xl">
+                <i class="fa-solid fa-mountain"></i> <span>MORE EPIC</span>
+            </button>
+            <button onclick="enhancePrompt('realistic')" class="px-5 py-2 text-xs flex items-center gap-x-2 bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 rounded-2xl">
+                <i class="fa-solid fa-camera"></i> <span>MORE REALISTIC</span>
+            </button>
+            
+            <div class="flex-1"></div>
+            
+            <button onclick="makeFluxReady()" class="px-5 py-2 text-xs flex items-center gap-x-2 bg-emerald-900 hover:bg-emerald-800 text-emerald-300 border border-emerald-700 rounded-2xl">
+                <i class="fa-solid fa-bolt"></i> <span>FLUX</span>
+            </button>
+            <button onclick="makeMidjourneyReady()" class="px-5 py-2 text-xs flex items-center gap-x-2 bg-violet-900 hover:bg-violet-800 text-violet-300 border border-violet-700 rounded-2xl">
+                <i class="fa-solid fa-magic"></i> <span>MIDJOURNEY</span>
+            </button>
+        </div>
+
+        <!-- Generate Button -->
+        <div class="mt-6 flex justify-center">
+            <button onclick="generateMasterPrompt()" 
+                    class="px-14 py-4 bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-lg font-semibold text-white rounded-3xl flex items-center gap-x-4 shadow-2xl shadow-emerald-500/40">
+                <span>GENERATE MASTER PROMPT</span>
+                <i class="fa-solid fa-magic"></i>
+            </button>
+        </div>
+
+        <!-- OUTPUT SECTION -->
+        <div id="output-section" class="mt-8 hidden">
+            <div class="flex items-center justify-between mb-4">
+                <div class="font-display text-2xl tracking-tight">Generated Prompts</div>
+                <button onclick="copyAllPrompts()" class="flex items-center gap-x-2 px-5 py-2 text-sm bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 rounded-2xl">
+                    <i class="fa-solid fa-copy"></i> <span>COPY ALL</span>
+                </button>
+            </div>
+            
+            <div class="mb-5">
+                <div class="flex items-center justify-between mb-2">
+                    <span class="font-semibold">MASTER PROMPT</span>
+                    <button onclick="copyPrompt('master-prompt')" class="text-emerald-400 hover:text-emerald-300 text-xs flex items-center gap-x-1">
+                        <i class="fa-solid fa-copy"></i> <span>COPY</span>
+                    </button>
+                </div>
+                <textarea id="master-prompt" rows="6" class="prompt-textarea w-full bg-zinc-900 border border-zinc-700 rounded-2xl p-5 text-sm"></textarea>
+            </div>
+            
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-5">
+                <div>
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="font-semibold">STYLE DNA</span>
+                        <button onclick="copyPrompt('style-dna')" class="text-emerald-400 hover:text-emerald-300 text-xs flex items-center gap-x-1">
+                            <i class="fa-solid fa-copy"></i> <span>COPY</span>
+                        </button>
+                    </div>
+                    <textarea id="style-dna" rows="4" class="prompt-textarea w-full bg-zinc-900 border border-zinc-700 rounded-2xl p-5 text-sm"></textarea>
+                </div>
+                
+                <div>
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="font-semibold">CINEMATIC SETTINGS</span>
+                        <button onclick="copyPrompt('cinematic-settings')" class="text-emerald-400 hover:text-emerald-300 text-xs flex items-center gap-x-1">
+                            <i class="fa-solid fa-copy"></i> <span>COPY</span>
+                        </button>
+                    </div>
+                    <textarea id="cinematic-settings" rows="4" class="prompt-textarea w-full bg-zinc-900 border border-zinc-700 rounded-2xl p-5 text-sm font-mono"></textarea>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- TOAST -->
+    <div id="toast" class="hidden fixed bottom-6 left-1/2 -translate-x-1/2 bg-zinc-800 border border-zinc-700 text-white px-6 py-3 rounded-3xl shadow-2xl flex items-center gap-x-3 z-50">
+        <i class="fa-solid fa-check-circle text-emerald-400"></i>
+        <span id="toast-text"></span>
+    </div>
+
+    <script>
+        // Tailwind script
+        function initializeTailwind() {
+            const sliders = ['detail-level', 'realism-level', 'cinematic-drama'];
+            sliders.forEach(id => {
+                const slider = document.getElementById(id);
+                if (slider) {
+                    const valEl = document.getElementById(id + '-val');
+                    if (valEl) {
+                        valEl.textContent = slider.value;
+                        slider.addEventListener('input', () => valEl.textContent = slider.value);
+                    }
+                }
+            });
+        }
+        
+        function updateSliderValue(slider, valId) {
+            const valEl = document.getElementById(valId);
+            if (valEl) valEl.textContent = slider.value;
+        }
+        
+        // Image handling
+        let uploadedImages = [];
+        
+        function handleDragOver(e) { e.preventDefault(); e.currentTarget.classList.add('border-emerald-500'); }
+        function handleDragLeave(e) { e.currentTarget.classList.remove('border-emerald-500'); }
+        function handleDrop(e) { e.preventDefault(); e.currentTarget.classList.remove('border-emerald-500'); processFiles(e.dataTransfer.files); }
+        function handleFileSelect(e) { processFiles(e.target.files); }
+        
+        function processFiles(files) {
+            const gallery = document.getElementById('gallery');
+            const grid = document.getElementById('thumbnail-grid');
+            const countEl = document.getElementById('image-count');
+            
+            Array.from(files).forEach(file => {
+                if (!file.type.startsWith('image/')) return;
+                if (uploadedImages.length >= 8) { alert('Maximum 8 images allowed'); return; }
+                
+                const reader = new FileReader();
+                reader.onload = function(ev) {
+                    const imgData = { id: Date.now() + Math.random(), name: file.name, url: ev.target.result };
+                    uploadedImages.push(imgData);
+                    
+                    const thumb = document.createElement('div');
+                    thumb.className = `thumbnail relative group aspect-square bg-zinc-800 rounded-2xl overflow-hidden border border-zinc-700`;
+                    thumb.innerHTML = `
+                        <img src="${ev.target.result}" class="w-full h-full object-cover">
+                        <button onclick="removeImage('${imgData.id}', this)" class="absolute top-2 right-2 w-6 h-6 bg-black/70 hover:bg-red-600 text-white rounded-full flex items-center justify-center text-xs">
+                            <i class="fa-solid fa-times"></i>
+                        </button>
+                        <div class="absolute bottom-0 left-0 right-0 px-2 py-1 text-[9px] text-white font-mono truncate bg-black/60">${file.name}</div>
+                    `;
+                    grid.appendChild(thumb);
+                    gallery.classList.remove('hidden');
+                    countEl.textContent = `(${uploadedImages.length}/8)`;
+                };
+                reader.readAsDataURL(file);
+            });
+        }
+        
+        function removeImage(id, element) {
+            uploadedImages = uploadedImages.filter(img => img.id != id);
+            element.parentElement.remove();
+            document.getElementById('image-count').textContent = `(${uploadedImages.length}/8)`;
+            if (uploadedImages.length === 0) document.getElementById('gallery').classList.add('hidden');
+        }
+        
+        function clearAllImages() {
+            uploadedImages = [];
+            document.getElementById('thumbnail-grid').innerHTML = '';
+            document.getElementById('gallery').classList.add('hidden');
+            document.getElementById('image-count').textContent = '(0/8)';
+        }
+        
+        function loadDemoAnalysis() {
+            document.getElementById('subject-main').value = 'sleek silver maglev train gliding effortlessly';
+            document.getElementById('subject-pose').value = 'in smooth high-speed motion along elevated verdant tracks';
+            document.getElementById('subject-scale').value = 'Epic';
+            document.getElementById('subject-emotion').value = 'Majestic & Hopeful';
+            document.getElementById('env-location').value = 'towering multi-level biophilic megacity';
+            document.getElementById('env-background').value = 'cascading waterfalls, vertical gardens, glowing holographic billboards';
+            document.getElementById('env-atmosphere').value = 'misty golden hour with dramatic sunbeams piercing canopy';
+            document.getElementById('style-genre').value = 'Biophilic Futurism';
+            document.getElementById('style-artdir').value = 'hyperrealistic concept art • Studio Ghibli + Blade Runner 2049';
+            document.getElementById('style-mood').value = 'awe-inspiring, serene optimism, epic tranquility';
+            document.getElementById('lighting-key').value = 'dramatic volumetric golden sunlight streaming from upper left';
+            document.getElementById('lighting-rim').value = 'cool cyan rim lighting tracing every edge';
+            document.getElementById('lighting-volumetric').value = 'powerful god rays piercing canopy layers';
+            document.getElementById('color-dominant').value = 'deep emerald green, rich forest green, warm golden amber';
+            document.getElementById('color-accent').value = 'electric cyan, burnt orange, brushed silver';
+            document.getElementById('cine-angle').value = 'Low heroic angle';
+            document.getElementById('cine-lens').value = 'Anamorphic 35mm';
+            document.getElementById('cine-motion').value = 'smooth parallel tracking shot following the train';
+            document.getElementById('detail-micro').value = 'hyper-detailed individual leaves with dew drops, micro scratches on titanium';
+            document.getElementById('detail-particles').value = 'floating light motes in sunbeams, gentle rain streaks';
+            document.getElementById('negative').value = 'lowres, bad anatomy, text, error, missing fingers, blurry, cartoon, 2d, lowpoly, overexposed, underexposed';
+            
+            document.getElementById('detail-level').value = '9';
+            document.getElementById('detail-level-val').textContent = '9';
+            document.getElementById('realism-level').value = '9';
+            document.getElementById('realism-level-val').textContent = '9';
+            document.getElementById('cinematic-drama').value = '9';
+            document.getElementById('cinematic-drama-val').textContent = '9';
+            
+            showToast('Demo loaded successfully!');
+        }
+        
+        function resetAnalysis() {
+            const inputs = document.querySelectorAll('input[type="text"], textarea, select');
+            inputs.forEach(el => el.value = '');
+            document.getElementById('negative').value = 'lowres, bad anatomy, text, error, missing fingers, blurry, cartoon, 2d, lowpoly, overexposed, underexposed';
+            showToast('Form reset');
+        }
+        
+        function collectAllData() {
+            return {
+                subjectMain: document.getElementById('subject-main').value || 'futuristic vehicle',
+                subjectPose: document.getElementById('subject-pose').value || 'moving through the scene',
+                scale: document.getElementById('subject-scale').value,
+                location: document.getElementById('env-location').value || 'futuristic city',
+                background: document.getElementById('env-background').value,
+                atmosphere: document.getElementById('env-atmosphere').value,
+                genre: document.getElementById('style-genre').value,
+                artDirection: document.getElementById('style-artdir').value,
+                mood: document.getElementById('style-mood').value,
+                lightingKey: document.getElementById('lighting-key').value,
+                lightingRim: document.getElementById('lighting-rim').value,
+                lightingVolumetric: document.getElementById('lighting-volumetric').value,
+                colorDominant: document.getElementById('color-dominant').value,
+                colorAccent: document.getElementById('color-accent').value,
+                angle: document.getElementById('cine-angle').value,
+                lens: document.getElementById('cine-lens').value,
+                motion: document.getElementById('cine-motion').value,
+                microDetails: document.getElementById('detail-micro').value,
+                particles: document.getElementById('detail-particles').value,
+                detailLevel: document.getElementById('detail-level').value,
+                realismLevel: document.getElementById('realism-level').value,
+                cinematicDrama: document.getElementById('cinematic-drama').value,
+                negative: document.getElementById('negative').value
+            };
+        }
+        
+        function generateMasterPrompt() {
+            const data = collectAllData();
+            
+            let master = `A highly detailed cinematic ${data.scale.toLowerCase()} image of ${data.subjectMain}, ${data.subjectPose}. `;
+            master += `Set in a ${data.location} with ${data.background}. `;
+            master += `The scene features ${data.atmosphere}. `;
+            master += `${data.lightingKey}. ${data.lightingRim}. ${data.lightingVolumetric}. `;
+            master += `Rich ${data.colorDominant} color palette with ${data.colorAccent} accents. `;
+            master += `Shot on ${data.lens} lens from a ${data.angle.toLowerCase()}. `;
+            master += `Emphasizing ${data.microDetails} and ${data.particles}. `;
+            
+            if (parseInt(data.detailLevel) >= 8) master += ', obsessively detailed, intricate micro-textures';
+            if (parseInt(data.realismLevel) >= 8) master += ', photorealistic, shot on 70mm IMAX film';
+            if (parseInt(data.cinematicDrama) >= 8) master += ', epic cinematic masterpiece';
+            
+            master += '. Ultra-realistic, high fidelity, atmospheric depth, professional cinematic lighting, 8k resolution.';
+            
+            const styleDNA = `${data.genre} aesthetic. ${data.artDirection}. Mood: ${data.mood}. Hyper-detailed digital concept art.`;
+            
+            const cineSettings = `Camera: ${data.angle}\nLens: ${data.lens}\nLighting: ${data.lightingKey} • ${data.lightingRim}\nMotion: ${data.motion}\nColor Palette: ${data.colorDominant} + ${data.colorAccent}`;
+            
+            document.getElementById('master-prompt').value = master;
+            document.getElementById('style-dna').value = styleDNA;
+            document.getElementById('cinematic-settings').value = cineSettings;
+            
+            document.getElementById('output-section').classList.remove('hidden');
+            document.getElementById('output-section').scrollIntoView({ behavior: 'smooth' });
+            
+            showToast('Master prompt generated!');
+        }
+        
+        function enhancePrompt(type) {
+            const masterEl = document.getElementById('master-prompt');
+            if (!masterEl || masterEl.value.trim() === '') { showToast('Generate a prompt first!'); return; }
+            
+            let addition = '';
+            if (type === 'cinematic') addition = ', directed by Denis Villeneuve, anamorphic lens flares, IMAX color grading';
+            if (type === 'epic') addition = ', monumental scale, awe-inspiring grandeur, world-building masterpiece';
+            if (type === 'realistic') addition = ', photorealistic, shot on ARRI Alexa 65, natural imperfections, subtle film grain';
+            
+            masterEl.value = masterEl.value.trim() + addition;
+            showToast(`Enhanced with ${type} modifiers`);
+        }
+        
+        function makeFluxReady() {
+            const masterEl = document.getElementById('master-prompt');
+            if (!masterEl || masterEl.value.trim() === '') { showToast('Generate a prompt first!'); return; }
+            masterEl.value = masterEl.value.trim() + ', masterpiece, best quality, ultra detailed, 8k uhd, trending on artstation';
+            showToast('FLUX modifiers added');
+        }
+        
+        function makeMidjourneyReady() {
+            const masterEl = document.getElementById('master-prompt');
+            if (!masterEl || masterEl.value.trim() === '') { showToast('Generate a prompt first!'); return; }
+            masterEl.value = masterEl.value.trim() + ' --ar 16:9 --v 6 --q 2 --stylize 650';
+            showToast('Midjourney parameters added');
+        }
+        
+        function copyPrompt(elementId) {
+            const el = document.getElementById(elementId);
+            if (!el) return;
+            navigator.clipboard.writeText(el.value).then(() => showToast('Copied!')).catch(() => { el.select(); document.execCommand('copy'); showToast('Copied!'); });
+        }
+        
+        function copyAllPrompts() {
+            const master = document.getElementById('master-prompt').value;
+            const style = document.getElementById('style-dna').value;
+            const cine = document.getElementById('cinematic-settings').value;
+            
+            const fullText = `MASTER PROMPT:\n${master}\n\nSTYLE DNA:\n${style}\n\nCINEMATIC SETTINGS:\n${cine}`;
+            
+            navigator.clipboard.writeText(fullText).then(() => showToast('All prompts copied!')).catch(() => {
+                const textarea = document.createElement('textarea');
+                textarea.value = fullText;
+                document.body.appendChild(textarea);
+                textarea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textarea);
+                showToast('All prompts copied!');
+            });
+        }
+        
+        function showToast(message) {
+            const toast = document.getElementById('toast');
+            const text = document.getElementById('toast-text');
+            text.textContent = message;
+            toast.style.display = 'flex';
+            toast.classList.remove('hidden');
+            
+            setTimeout(() => {
+                toast.style.transition = 'all 0.3s ease';
+                toast.style.opacity = '0';
+                setTimeout(() => {
+                    toast.style.opacity = '1';
+                    toast.style.transition = '';
+                    toast.style.display = 'none';
+                    toast.classList.add('hidden');
+                }, 300);
+            }, 2200);
+        }
+        
+        function showHelp() {
+            alert('AETHER v3.1\n\n1. Upload reference images or load the demo\n2. Fill in the analysis categories\n3. Adjust the intensity sliders\n4. Click Generate Master Prompt\n5. Copy and use in Flux, Midjourney, Runway, etc.');
+        }
+        
+        function initializeApp() {
+            initializeTailwind();
+            
+            // Keyboard shortcut
+            document.addEventListener('keydown', function(e) {
+                if (e.metaKey && e.key === 'Enter') {
+                    e.preventDefault();
+                    generateMasterPrompt();
+                }
+            });
+            
+            console.log('%c[AETHER Clean] Ready', 'color:#166534');
+        }
+        
+        window.onload = initializeApp;
+    </script>
+</body>
+</html>
